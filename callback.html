@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeslaLaneNav 授权回调</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+       background:#111;color:#eee;padding:24px}
+  .card{max-width:560px;width:100%;background:#1b1b1d;border:1px solid #2c2c2e;
+        border-radius:16px;padding:28px}
+  h1{font-size:20px;margin:0 0 6px}
+  p.sub{margin:0 0 20px;color:#9a9aa0;font-size:14px}
+  .ok{color:#4ade80}
+  .err{color:#f87171}
+  code{display:block;word-break:break-all;background:#000;border:1px solid #2c2c2e;
+       border-radius:10px;padding:12px;font-size:13px;margin:10px 0;color:#7dd3fc;
+       min-height:44px}
+  button{width:100%;padding:12px;border:0;border-radius:10px;font-size:16px;
+         background:#3b82f6;color:#fff;font-weight:600;cursor:pointer}
+  button:active{opacity:.8}
+  .hint{font-size:13px;color:#9a9aa0;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="title">正在返回 App...</h1>
+  <p class="sub" id="sub">如果 App 没有自动打开，请手动复制下面的授权码。</p>
+  <code id="codeBox">-</code>
+  <button id="copyBtn">复制授权码</button>
+  <p class="hint">复制后回到 TeslaLaneNav，粘贴到弹出的输入框即可。</p>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var code = q.get('code');
+  var state = q.get('state') || '';
+  var err = q.get('error');
+
+  var t = document.getElementById('title');
+  var s = document.getElementById('sub');
+  var box = document.getElementById('codeBox');
+  var btn = document.getElementById('copyBtn');
+
+  if (err) {
+    t.innerHTML = '<span class="err">授权被拒绝</span>';
+    s.textContent = q.get('error_description') || err;
+    box.textContent = err;
+    return;
+  }
+
+  if (!code) {
+    t.innerHTML = '<span class="err">没有拿到授权码</span>';
+    s.textContent = '这个页面需要用特斯拉回跳过来的地址打开（地址里要带 ?code=...）。';
+    box.textContent = location.href;
+    return;
+  }
+
+  box.textContent = code;
+  t.innerHTML = '<span class="ok">授权成功</span>';
+  s.textContent = '正在尝试返回 TeslaLaneNav...';
+
+  btn.onclick = function () {
+    if (navigator.clipboard) { navigator.clipboard.writeText(code); }
+    btn.textContent = '已复制';
+  };
+
+  // 尝试用自定义协议唤起 App
+  var deep = 'teslalnenav://callback?code=' + encodeURIComponent(code)
+           + (state ? '&state=' + encodeURIComponent(state) : '');
+  setTimeout(function () { location.href = deep; }, 200);
+
+  // 2.5 秒后还没跳走，就引导手动复制
+  setTimeout(function () {
+    s.textContent = '没自动打开？点上面的按钮复制授权码，回 App 粘贴。';
+  }, 2500);
+})();
+</script>
+</body>
+</html>
